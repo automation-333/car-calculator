@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Авто под ключ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Калькулятор цены авто из Кореи, Китая и Японии под ключ до Владивостока: пошлина, утильсбор, сбор, логистика и комиссия.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Golos+Text:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: ночной порт. Слева параметры машины карточками, справа липкий чек с разбивкой цены полосой */
+:root {
+  color-scheme: dark;
+  --bg: #090D12;
+  --panel: #10161D;
+  --panel-2: #151D26;
+  --line: rgba(220, 232, 245, 0.09);
+  --line-2: rgba(220, 232, 245, 0.16);
+  --ink: #EEF2F6;
+  --muted: #8C99A6;
+  --dim: #5D6A77;
+  --amber: #F3A743;
+  --amber-ink: #1A1206;
+  --c-car: #7FB2E5;
+  --c-customs: #F3A743;
+  --c-log: #4EC3A5;
+  --c-fee: #B9A2F2;
+  --warn-bg: rgba(243, 167, 67, 0.12);
+  --font-display: "Unbounded", "Golos Text", system-ui, sans-serif;
+  --font-body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; min-height: 100%;
+  background:
+    radial-gradient(900px 500px at 0% -10%, rgba(243,167,67,0.10), transparent 60%),
+    radial-gradient(700px 500px at 100% 0%, rgba(127,178,229,0.08), transparent 60%),
+    var(--bg);
+  color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(env(safe-area-inset-top, 0px) + 28px) calc(env(safe-area-inset-bottom, 0px) + 40px);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 26px; }
+
+/* Шапка */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); font-size: 13px; }
+.brand-mark { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--amber), #D9792B); display: grid; place-items: center; color: var(--amber-ink); font-family: var(--font-display); font-weight: 800; font-size: 12px; }
+.live { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; font-variant-numeric: tabular-nums; }
+.live i { width: 7px; height: 7px; border-radius: 50%; background: var(--c-log); box-shadow: 0 0 10px var(--c-log); }
+
+.hero { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(30px, 6vw, 56px); line-height: 1.02; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--amber); }
+.lede { color: var(--muted); margin: 0; font-size: 16px; max-width: 58ch; }
+
+/* Маршрут */
+.route { background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; }
+.port { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.port small { color: var(--dim); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+.port b { font-family: var(--font-display); font-weight: 700; font-size: clamp(14px, 2.4vw, 18px); white-space: nowrap; }
+.port.end { text-align: right; }
+.track { position: relative; height: 34px; min-width: 0; }
+.track svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.track .mode { position: absolute; left: 50%; top: -4px; transform: translateX(-50%); font-size: 11.5px; color: var(--muted); white-space: nowrap; background: var(--panel-2); padding: 0 8px; }
+@media (max-width: 520px) { .route { grid-template-columns: minmax(0,1fr) minmax(0,1fr); } .track { grid-column: 1 / -1; order: 3; } }
+
+/* Сетка */
+.grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 880px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.card-head h2 { margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.card-head span { font-size: 12px; color: var(--dim); }
+
+/* Страны */
+.countries { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.country { font: inherit; text-align: left; cursor: pointer; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 4px; transition: border-color .2s, background .2s; min-width: 0; }
+.country b { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
+.country small { color: var(--muted); font-size: 12px; }
+.country[aria-pressed="true"] { border-color: var(--amber); background: rgba(243,167,67,0.08); }
+.country[aria-pressed="true"] small { color: var(--amber); }
+@media (max-width: 420px) { .country { padding: 12px 10px; } .country b { font-size: 13px; } }
+
+/* Поля */
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fields .wide { grid-column: 1 / -1; }
+.fields.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 520px) { .fields, .fields.three { grid-template-columns: minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.input { position: relative; display: flex; align-items: center; }
+.input input, .input select {
+  font: inherit; font-size: 16px; font-weight: 500; color: var(--ink); background: var(--bg); border: 1px solid var(--line-2);
+  border-radius: 11px; padding: 12px 14px; width: 100%; min-width: 0; font-variant-numeric: tabular-nums; appearance: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.input input:hover, .input select:hover { border-color: rgba(220,232,245,0.26); }
+.input input:focus, .input select:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(243,167,67,0.18); }
+.input .unit { position: absolute; right: 13px; color: var(--dim); font-size: 13.5px; pointer-events: none; }
+.input.has-unit input { padding-right: 48px; }
+.input select { padding-right: 36px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 52%, calc(100% - 13px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+input[type="month"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+.note { font-size: 12.5px; color: var(--dim); margin: 0; }
+.toggle { display: inline-grid; grid-template-columns: 1fr 1fr; background: var(--bg); border: 1px solid var(--line-2); border-radius: 11px; padding: 3px; gap: 3px; }
+.toggle button { font: inherit; font-size: 14px; font-weight: 600; border: 0; border-radius: 8px; padding: 9px 10px; background: transparent; color: var(--muted); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--panel-2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
+button:focus-visible, .country:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* Чек */
+.receipt { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); background: linear-gradient(180deg, #131B24, var(--panel)); border: 1px solid var(--line-2); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 18px; min-width: 0; box-shadow: 0 30px 80px -40px rgba(0,0,0,0.8); }
+@media (max-width: 880px) { .receipt { position: static; } }
+.total-label { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0; }
+.total { font-family: var(--font-display); font-weight: 800; font-size: clamp(34px, 6vw, 48px); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin: 6px 0 0; overflow-wrap: anywhere; }
+.total-sub { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 12.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink); background: var(--bg); }
+.chip.amber { border-color: rgba(243,167,67,0.4); color: var(--amber); }
+.bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 3px; background: var(--bg); }
+.bar span { display: block; height: 100%; border-radius: 999px; transition: flex-basis .45s cubic-bezier(.2,.8,.2,1); }
+.legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.legend > li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+.legend > li:first-child { border-top: 0; }
+.dot { width: 10px; height: 10px; border-radius: 3px; }
+.legend .name { font-weight: 600; }
+.legend .val { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.legend .sub { grid-column: 2 / 4; display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+.legend .sub div { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.legend .sub div span:first-child { min-width: 0; }
+.warn { background: var(--warn-bg); border: 1px solid rgba(243,167,67,0.3); color: #F7C98A; border-radius: 12px; padding: 11px 13px; font-size: 13px; }
+.actions { display: flex; flex-direction: column; gap: 10px; }
+.btn { font: inherit; font-weight: 700; font-size: 15px; border: 0; border-radius: 12px; padding: 14px 18px; cursor: pointer; background: var(--amber); color: var(--amber-ink); transition: transform .15s, filter .15s; }
+.btn:hover { filter: brightness(1.06); }
+.btn:active { transform: translateY(1px); }
+.copy-fallback { width: 100%; min-height: 170px; font: inherit; font-size: 13px; color: var(--ink); background: var(--bg); border: 1px solid var(--line-2); border-radius: 11px; padding: 12px; }
+
+/* Как считается */
+details.card summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+details.card summary::-webkit-details-marker { display: none; }
+details.card summary::after { content: "+"; font-family: var(--font-display); color: var(--amber); font-size: 20px; }
+details.card[open] summary::after { content: "−"; }
+.rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .rules { grid-template-columns: minmax(0, 1fr); } }
+.rule { background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.rule h3 { margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 700; }
+.rule p { margin: 0; color: var(--muted); font-size: 13px; }
+.rate-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; border-top: 1px dashed var(--line); padding-top: 6px; }
+.rate-row span:first-child { color: var(--muted); }
+
+footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--dim); font-size: 12.5px; border-top: 1px solid var(--line); padding-top: 16px; }
+footer a { color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { .bar span, .country, .btn { transition: none; } .ship { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="brand"><span class="brand-mark">VVO</span> Расчёт импорта авто</div>
+    <span class="live"><i></i><span id="rateDate">Курсы ЦБ на 17.10.2026</span></span>
+  </div>
+
+  <section class="hero">
+    <h1>Сколько стоит машина <em>под ключ</em> во Владивостоке</h1>
+    <p class="lede">Цена в стране, растаможка для физлица по ставкам 2026 года, доставка и услуги. Меняете параметры, итог пересчитывается сразу.</p>
+  </section>
+
+  <div class="route" aria-label="Маршрут доставки">
+    <div class="port"><small id="fromCountry">Южная Корея</small><b id="fromPort">Пусан</b></div>
+    <div class="track">
+      <span class="mode" id="routeMode">паром · 4–7 дней</span>
+      <svg viewBox="0 0 400 34" preserveAspectRatio="none" aria-hidden="true">
+        <line x1="6" y1="22" x2="394" y2="22" stroke="rgba(220,232,245,0.18)" stroke-width="2" stroke-dasharray="4 6"/>
+        <circle cx="6" cy="22" r="5" fill="#7FB2E5"/>
+        <circle cx="394" cy="22" r="5" fill="#F3A743"/>
+        <circle class="ship" cx="6" cy="22" r="3.5" fill="#EEF2F6">
+          <animate attributeName="cx" from="6" to="394" dur="4.5s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+    <div class="port end"><small>Россия</small><b>Владивосток</b></div>
+  </div>
+
+  <div class="grid">
+    <form class="col" id="form" autocomplete="off">
+
+      <section class="card">
+        <div class="card-head"><h2>Откуда везём</h2></div>
+        <div class="countries" role="group" aria-label="Страна">
+          <button type="button" class="country" data-country="KR" aria-pressed="true"><b>Корея</b><small>Пусан</small></button>
+          <button type="button" class="country" data-country="CN" aria-pressed="false"><b>Китай</b><small>Суйфэньхэ</small></button>
+          <button type="button" class="country" data-country="JP" aria-pressed="false"><b>Япония</b><small>Фусики</small></button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Машина</h2><span id="modelHint">пример</span></div>
+        <div class="fields">
+          <div class="field wide">
+            <label for="model">Модель</label>
+            <div class="input"><input id="model" type="text" value="Kia K5 2.0"></div>
+          </div>
+          <div class="field">
+            <label for="price">Цена в стране</label>
+            <div class="input has-unit"><input id="price" class="num" type="text" inputmode="numeric" value="25 000 000"><span class="unit" id="curSym">₩</span></div>
+          </div>
+          <div class="field">
+            <label for="made">Дата выпуска</label>
+            <div class="input"><input id="made" type="month" value="2023-06"></div>
+          </div>
+          <div class="field">
+            <label for="cc">Объём двигателя</label>
+            <div class="input has-unit"><input id="cc" class="num" type="text" inputmode="numeric" value="1 999"><span class="unit">см³</span></div>
+          </div>
+          <div class="field">
+            <label for="hp">Мощность</label>
+            <div class="input has-unit"><input id="hp" class="num" type="text" inputmode="numeric" value="160"><span class="unit">л.с.</span></div>
+          </div>
+          <div class="field wide">
+            <label for="engine">Двигатель</label>
+            <div class="input">
+              <select id="engine">
+                <option value="ice">Бензин или дизель</option>
+                <option value="hybrid">Гибрид (параллельный)</option>
+                <option value="ev">Электро или последовательный гибрид</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Доставка и услуги</h2><span>тарифы компании</span></div>
+        <div class="fields three">
+          <div class="field">
+            <label for="local">В стране до порта</label>
+            <div class="input has-unit"><input id="local" class="num" type="text" inputmode="numeric" value="90 000"><span class="unit">₽</span></div>
+          </div>
+          <div class="field">
+            <label for="freight">До Владивостока</label>
+            <div class="input has-unit"><input id="freight" class="num" type="text" inputmode="numeric" value="110 000"><span class="unit">₽</span></div>
+          </div>
+          <div class="field">
+            <label for="vvo">Во Владивостоке</label>
+            <div class="input has-unit"><input id="vvo" class="num" type="text" inputmode="numeric" value="95 000"><span class="unit">₽</span></div>
+          </div>
+        </div>
+        <div class="fields">
+          <div class="field">
+            <label for="fee">Комиссия компании</label>
+            <div class="input has-unit"><input id="fee" class="num" type="text" inputmode="numeric" value="70 000"><span class="unit" id="feeUnit">₽</span></div>
+          </div>
+          <div class="field">
+            <label>Как считать комиссию</label>
+            <div class="toggle" role="group" aria-label="Тип комиссии">
+              <button type="button" data-fee="rub" aria-pressed="true">Фикс, ₽</button>
+              <button type="button" data-fee="pct" aria-pressed="false">% от цены</button>
+            </div>
+          </div>
+        </div>
+        <p class="note">Тарифы на доставку и комиссию тут примерные, в рабочей версии ставятся тарифы компании.</p>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Курсы ЦБ</h2><span>можно поменять</span></div>
+        <div class="fields">
+          <div class="field">
+            <label for="eur">Евро</label>
+            <div class="input has-unit"><input id="eur" type="text" inputmode="decimal" value="93,7187"><span class="unit">₽</span></div>
+          </div>
+          <div class="field">
+            <label for="cur" id="curRateLabel">1000 вон</label>
+            <div class="input has-unit"><input id="cur" type="text" inputmode="decimal" value="62,0079"><span class="unit">₽</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="utilManualBox" hidden>
+        <div class="card-head"><h2>Утильсбор вручную</h2></div>
+        <div class="field">
+          <label for="utilManual">Сумма по расчёту брокера</label>
+          <div class="input has-unit"><input id="utilManual" class="num" type="text" inputmode="numeric" placeholder="0"><span class="unit">₽</span></div>
+        </div>
+      </section>
+    </form>
+
+    <aside class="receipt" aria-live="polite">
+      <div>
+        <p class="total-label">Итого под ключ</p>
+        <p class="total" id="total">0 ₽</p>
+        <p class="total-sub" id="totalSub"></p>
+      </div>
+      <div class="chips"><span class="chip amber" id="ageChip"></span><span class="chip" id="utilChip"></span></div>
+      <div class="bar" id="bar" aria-hidden="true">
+        <span style="background:var(--c-car)"></span><span style="background:var(--c-customs)"></span><span style="background:var(--c-log)"></span><span style="background:var(--c-fee)"></span>
+      </div>
+      <div class="warn" id="warn" hidden></div>
+      <ul class="legend" id="legend"></ul>
+      <div class="actions">
+        <button class="btn" type="button" id="copyBtn">Скопировать расчёт клиенту</button>
+        <textarea class="copy-fallback" id="copyFallback" readonly hidden aria-label="Текст расчёта"></textarea>
+      </div>
+    </aside>
+  </div>
+
+  <details class="card">
+    <summary>Как считается растаможка</summary>
+    <div class="rules">
+      <div class="rule">
+        <h3>До 3 лет</h3>
+        <p>Процент от стоимости, но не меньше минимума за см³.</p>
+        <div class="rate-row"><span>до 8 500 €</span><span>54% · мин. 2,5 €/см³</span></div>
+        <div class="rate-row"><span>8 500–16 700 €</span><span>48% · мин. 3,5 €/см³</span></div>
+        <div class="rate-row"><span>16 700–42 300 €</span><span>48% · мин. 5,5 €/см³</span></div>
+        <div class="rate-row"><span>42 300–84 500 €</span><span>48% · мин. 7,5 €/см³</span></div>
+        <div class="rate-row"><span>дороже</span><span>48% · мин. 15–20 €/см³</span></div>
+      </div>
+      <div class="rule">
+        <h3>3–5 лет</h3>
+        <p>Евро за кубический сантиметр по объёму.</p>
+        <div class="rate-row"><span>до 1 000 см³</span><span>1,5 €</span></div>
+        <div class="rate-row"><span>1 000–1 500</span><span>1,7 €</span></div>
+        <div class="rate-row"><span>1 500–1 800</span><span>2,5 €</span></div>
+        <div class="rate-row"><span>1 800–2 300</span><span>2,7 €</span></div>
+        <div class="rate-row"><span>2 300–3 000</span><span>3,0 €</span></div>
+        <div class="rate-row"><span>больше 3 000</span><span>3,6 €</span></div>
+      </div>
+      <div class="rule">
+        <h3>Старше 5 лет</h3>
+        <p>Те же объёмы, ставка выше.</p>
+        <div class="rate-row"><span>до 1 000 см³</span><span>3,0 €</span></div>
+        <div class="rate-row"><span>1 000–1 500</span><span>3,2 €</span></div>
+        <div class="rate-row"><span>1 500–1 800</span><span>3,5 €</span></div>
+        <div class="rate-row"><span>1 800–2 300</span><span>4,8 €</span></div>
+        <div class="rate-row"><span>2 300–3 000</span><span>5,0 €</span></div>
+        <div class="rate-row"><span>больше 3 000</span><span>5,7 €</span></div>
+      </div>
+    </div>
+    <p class="note">Утильсбор для себя: 3 400 ₽ до 3 лет и 5 200 ₽ старше, если мощность до 160 л.с. и объём до 3 000 см³. Сбор за оформление от 1 231 до 73 860 ₽ по стоимости авто. Возраст считается от даты выпуска.</p>
+  </details>
+
+  <footer>
+    <span>Демо-расчёт. Точную сумму подтверждает таможенный брокер на дату декларации.</span>
+    <span>Сделал Илья · <a href="https://t.me/DMD_user" target="_blank" rel="noopener">@DMD_user</a></span>
+  </footer>
+</div>
+
+<script>
+// ---------- Логика расчёта (без DOM) ----------
+const DUTY_NEW = [
+  [8500, 0.54, 2.5], [16700, 0.48, 3.5], [42300, 0.48, 5.5],
+  [84500, 0.48, 7.5], [169000, 0.48, 15], [Infinity, 0.48, 20]
+];
+const DUTY_3_5 = [[1000, 1.5], [1500, 1.7], [1800, 2.5], [2300, 2.7], [3000, 3.0], [Infinity, 3.6]];
+const DUTY_5P  = [[1000, 3.0], [1500, 3.2], [1800, 3.5], [2300, 4.8], [3000, 5.0], [Infinity, 5.7]];
+const CUSTOMS_FEE = [
+  [200000, 1231], [450000, 2462], [1200000, 4924], [2700000, 13541],
+  [4200000, 18465], [5500000, 21344], [10000000, 49240], [Infinity, 73860]
+];
+const comma = n => String(n).replace(".", ",");
+
+function ageMonths(made, now) {
+  const [y, m] = made.split("-").map(Number);
+  let months = (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
+  if (now.getDate() < 15) months -= 1;
+  return Math.max(0, months);
+}
+function pick(table, x) { return table.find(r => x <= r[0]); }
+
+function calcAll(i) {
+  const priceRub = i.price * i.curRate;
+  const valueEur = priceRub / i.eur;
+  const months = ageMonths(i.made, i.now);
+  const cat = months < 36 ? "new" : months <= 60 ? "mid" : "old";
+  const res = { priceRub, valueEur, months, cat, warnings: [] };
+  if (i.engine === "ev") {
+    res.ev = true;
+    res.warnings.push("Электромобили и последовательные гибриды считаются по другой схеме: 15% пошлины, акциз и НДС 22%. В этой версии они не считаются.");
+  }
+  let dutyEur, dutyNote;
+  if (cat === "new") {
+    const [, pct, minCc] = pick(DUTY_NEW, valueEur);
+    const byPct = valueEur * pct, byCc = minCc * i.cc;
+    dutyEur = Math.max(byPct, byCc);
+    dutyNote = byPct >= byCc ? `${Math.round(pct * 100)}% от стоимости` : `${comma(minCc)} € × ${i.cc.toLocaleString("ru-RU")} см³`;
+  } else {
+    const [, rate] = pick(cat === "mid" ? DUTY_3_5 : DUTY_5P, i.cc);
+    dutyEur = rate * i.cc;
+    dutyNote = `${comma(rate)} € × ${i.cc.toLocaleString("ru-RU")} см³`;
+  }
+  res.dutyEur = dutyEur; res.duty = dutyEur * i.eur; res.dutyNote = dutyNote;
+  res.customsFee = pick(CUSTOMS_FEE, priceRub)[1];
+  const preferential = i.hp <= 160 && i.cc <= 3000 && i.engine !== "ev";
+  res.utilPreferential = preferential;
+  if (preferential) res.util = cat === "new" ? 3400 : 5200;
+  else {
+    res.util = i.utilManual || 0;
+    res.warnings.push(`Больше 160 л.с. или 3 000 см³: льготный утильсбор не действует, ставка коммерческая и бывает сотни тысяч рублей.${i.utilManual ? "" : " Впишите сумму по расчёту брокера, сейчас итог без неё."}`);
+  }
+  res.customsTotal = res.duty + res.customsFee + res.util;
+  res.fee = i.feeType === "pct" ? priceRub * i.fee / 100 : i.fee;
+  res.logistics = i.local + i.freight + i.vvo;
+  res.total = priceRub + res.customsTotal + res.logistics + res.fee;
+  return res;
+}
+
+// ---------- Интерфейс ----------
+if (typeof document !== "undefined") {
+  const COUNTRIES = {
+    KR: { name: "Южная Корея", port: "Пусан", mode: "паром · 4–7 дней", sym: "₩", rateLabel: "1000 вон", nominal: 1000, rate: "62,0079", price: 25000000, local: 90000, freight: 110000, model: "Kia K5 2.0", cc: 1999, hp: 160, made: "2023-06" },
+    CN: { name: "Китай", port: "Суйфэньхэ", mode: "автовоз · 5–10 дней", sym: "¥", rateLabel: "1 юань", nominal: 1, rate: "12,495", price: 120000, local: 60000, freight: 90000, model: "Geely Monjaro 2.0", cc: 1969, hp: 238, made: "2024-03" },
+    JP: { name: "Япония", port: "Фусики", mode: "судно · 5–8 дней", sym: "¥", rateLabel: "100 иен", nominal: 100, rate: "52,8691", price: 1800000, local: 70000, freight: 100000, model: "Toyota Corolla Fielder 1.5", cc: 1496, hp: 109, made: "2020-09" }
+  };
+  let country = "KR", feeType = "rub", lastText = "";
+  const $ = id => document.getElementById(id);
+  const fmt = n => Math.round(n).toLocaleString("ru-RU");
+  const rub = n => fmt(n) + " ₽";
+  const intVal = id => Number(String($(id).value).replace(/\D/g, "")) || 0;
+  const decVal = id => Number(String($(id).value).replace(/\s/g, "").replace(",", ".")) || 0;
+  const setInt = (id, n) => { $(id).value = Number(n).toLocaleString("ru-RU"); };
+
+  function ageText(m) {
+    const y = Math.floor(m / 12), mo = m % 12;
+    const yw = y % 10 === 1 && y % 100 !== 11 ? "год" : [2, 3, 4].includes(y % 10) && ![12, 13, 14].includes(y % 100) ? "года" : "лет";
+    return `${y} ${yw}${mo ? ` ${mo} мес.` : ""}`;
+  }
+  const CAT_TEXT = { new: "до 3 лет", mid: "3–5 лет", old: "старше 5 лет" };
+
+  function render() {
+    const c = COUNTRIES[country];
+    const r = calcAll({
+      price: intVal("price"), curRate: decVal("cur") / c.nominal, eur: decVal("eur") || 1, made: $("made").value || "2023-06",
+      cc: intVal("cc"), hp: intVal("hp"), engine: $("engine").value, local: intVal("local"), freight: intVal("freight"),
+      vvo: intVal("vvo"), fee: intVal("fee"), feeType, utilManual: intVal("utilManual"), now: new Date()
+    });
+    $("utilManualBox").hidden = r.utilPreferential || !!r.ev;
+    $("total").textContent = r.ev ? "считается отдельно" : rub(r.total);
+    $("totalSub").textContent = r.ev ? "" : `≈ ${fmt(r.total / (decVal("eur") || 1))} € · растаможка ${rub(r.customsTotal)}`;
+    $("ageChip").textContent = `${ageText(r.months)} · ставка ${CAT_TEXT[r.cat]}`;
+    $("utilChip").textContent = r.utilPreferential ? "утильсбор льготный" : "утильсбор коммерческий";
+    $("warn").hidden = r.warnings.length === 0;
+    $("warn").textContent = r.warnings.join(" ");
+
+    const parts = [r.priceRub, r.customsTotal, r.logistics, r.fee];
+    const sum = parts.reduce((a, b) => a + b, 0) || 1;
+    [...$("bar").children].forEach((s, k) => { s.style.flex = `0 0 calc(${(parts[k] / sum * 100).toFixed(2)}% - 3px)`; });
+
+    const row = (color, name, val, subs) => `<li><span class="dot" style="background:${color}"></span><span class="name">${name}</span><span class="val">${rub(val)}</span>${subs ? `<div class="sub">${subs.map(([a, b]) => `<div><span>${a}</span><span>${b}</span></div>`).join("")}</div>` : ""}</li>`;
+    $("legend").innerHTML = [
+      row("var(--c-car)", "Машина", r.priceRub, [[`${fmt(intVal("price"))} ${c.sym}`, `${fmt(r.valueEur)} €`]]),
+      row("var(--c-customs)", "Таможня", r.customsTotal, [[`Пошлина · ${r.dutyNote}`, rub(r.duty)], ["Утильсбор", rub(r.util)], ["Сбор за оформление", rub(r.customsFee)]]),
+      row("var(--c-log)", "Доставка", r.logistics, [[`${c.port}: до порта`, rub(intVal("local"))], [`${c.port} → Владивосток`, rub(intVal("freight"))], ["СВХ, брокер, ЭПТС", rub(intVal("vvo"))]]),
+      row("var(--c-fee)", "Услуги компании", r.fee, feeType === "pct" ? [[`${intVal("fee")}% от цены авто`, ""]] : null)
+    ].join("");
+
+    lastText = [
+      `${$("model").value || "Авто"} из страны: ${c.name}`,
+      `Выпуск ${$("made").value}, ${fmt(intVal("cc"))} см³, ${intVal("hp")} л.с.`,
+      ``,
+      `Машина: ${rub(r.priceRub)}`,
+      `Таможня: ${rub(r.customsTotal)} (пошлина ${rub(r.duty)}, утильсбор ${rub(r.util)}, сбор ${rub(r.customsFee)})`,
+      `Доставка до Владивостока: ${rub(r.logistics)}`,
+      `Услуги: ${rub(r.fee)}`,
+      ``,
+      `Итого под ключ: ${rub(r.total)}`,
+      `Курс ЦБ: 1 € = ${$("eur").value} ₽. Точная сумма фиксируется на дату декларации.`
+    ].join("\n");
+  }
+
+  function applyCountry(code) {
+    country = code;
+    const c = COUNTRIES[code];
+    document.querySelectorAll(".country").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.country === code)));
+    $("fromCountry").textContent = c.name; $("fromPort").textContent = c.port; $("routeMode").textContent = c.mode;
+    $("curSym").textContent = c.sym; $("curRateLabel").textContent = c.rateLabel; $("cur").value = c.rate;
+    $("model").value = c.model; $("made").value = c.made;
+    setInt("price", c.price); setInt("cc", c.cc); setInt("hp", c.hp); setInt("local", c.local); setInt("freight", c.freight);
+    $("utilManual").value = "";
+    render();
+  }
+
+  document.querySelectorAll(".country").forEach(b => b.addEventListener("click", () => applyCountry(b.dataset.country)));
+  document.querySelectorAll(".toggle button").forEach(b => b.addEventListener("click", () => {
+    feeType = b.dataset.fee;
+    document.querySelectorAll(".toggle button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    $("feeUnit").textContent = feeType === "pct" ? "%" : "₽";
+    if (feeType === "pct") setInt("fee", 5); else setInt("fee", 70000);
+    render();
+  }));
+  document.querySelectorAll("input.num").forEach(inp => inp.addEventListener("input", () => {
+    const digits = inp.value.replace(/\D/g, "");
+    const fromEnd = inp.value.length - (inp.selectionStart ?? inp.value.length);
+    inp.value = digits ? Number(digits).toLocaleString("ru-RU") : "";
+    const pos = Math.max(0, inp.value.length - fromEnd);
+    try { inp.setSelectionRange(pos, pos); } catch (e) {}
+  }));
+  $("form").addEventListener("input", render);
+  $("form").addEventListener("change", render);
+  $("form").addEventListener("submit", e => e.preventDefault());
+  $("copyBtn").addEventListener("click", () => {
+    const done = () => { $("copyBtn").textContent = "Скопировано"; setTimeout(() => { $("copyBtn").textContent = "Скопировать расчёт клиенту"; }, 1600); };
+    const fallback = () => { const t = $("copyFallback"); t.hidden = false; t.value = lastText; t.focus(); t.select(); };
+    try { navigator.clipboard.writeText(lastText).then(done, fallback); } catch (e) { fallback(); }
+  });
+  render();
+}
+</script>
+</body>
+</html>
